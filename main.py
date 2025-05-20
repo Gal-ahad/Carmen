@@ -7,9 +7,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 try:
-    DEV_ID = os.getenv("dev")
+    DEV_ID = int(os.getenv("dev"))
+    print("Running the bot in developer mode.")
 except Exception as e:
     DEV_ID = int(0)
+    print("Running the bot in guest mode.")
 
 # ==== INTENTS =====
 intents = discord.Intents.default()
@@ -24,14 +26,29 @@ handler = logging.FileHandler(filename="discord.log", encoding="utf-8", mode="w"
 # ==== COMMANDS =====
 
 # Sync
-@client.tree.command(name="sync", description="DEV ONLY: Manually sync slash commands")
+@client.tree.command(name="sync", description="DEV ONLY: Manually sync slash commands.")
 async def sync(interaction: discord.Interaction):
+    
     if interaction.user.id != DEV_ID:
-        await interaction.response.send_message("This command is available only to developers.", ephemeral=True)
+        await interaction.response.send_message("This command is available only to approved developers.", ephemeral=True)
         return
 
     await client.tree.sync()
     await interaction.response.send_message("✅ Slash commands synced!", ephemeral=True)
+
+@client.tree.command(name="magic_8_ball", description= "Get predictions about the future.")
+@app_commands.describe(question="Enter your question.")
+async def magic_8_ball(interaction: discord.Interaction, question: str):
+
+    responses = ["It is certain! 🥳", "It is decidedly so 😌", "Without a doubt 😌", "Yes, definitely 👍", "You may rely on it 🤔",
+                "As I see it, yes 🤔", "Most likely 🙂‍↕️", "Outlook is good", "Yes ✅", "Signs point to yes ✅", "Reply hazy, try again",
+                "Ask again later 🕝", "Better not tell you now 😉", "I can't say for now", "Concentrate and ask again",
+                "Don't count on it 🙂‍↔️", "My reply is no 😑", "My sources say no", "Outlook is not so good", "Very doubtful 😒", "That's a no ❌",
+                "No ❌", "Maybe ❓", "Ask me again", "I don't feel like telling you"]
+
+    choice = random.choice(responses)
+
+    await interaction.response.send_message(f"Your question: {question}\nMy verdict: {choice}")
 
 # ==== EVENTS =====
 @client.event
