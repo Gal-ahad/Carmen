@@ -41,15 +41,17 @@ async def sync(interaction: discord.Interaction):
 @app_commands.describe(question="Enter your question.")
 async def magic_8_ball(interaction: discord.Interaction, question: str):
 
-    responses = ["It is certain! 🥳", "It is decidedly so 😌", "Without a doubt 😌", "Yes, definitely 👍", "You may rely on it 🤔",
-                "As I see it, yes 🤔", "Most likely 🙂‍↕️", "Outlook is good", "Yes ✅", "Signs point to yes ✅", "Reply hazy, try again",
-                "Ask again later 🕝", "Better not tell you now 😉", "I can't say for now", "Concentrate and ask again",
-                "Don't count on it 🙂‍↔️", "My reply is no 😑", "My sources say no", "Outlook is not so good", "Very doubtful 😒", "That's a no ❌",
-                "No ❌", "Maybe ❓", "Ask me again", "I don't feel like telling you"]
+    if question.endswith("?") == False:
+        await interaction.response.send_message("That's not a question, try again!")
+    
+    else:
+        responses = ["It is certain! 🥳", "It is decidedly so 😌", "Without a doubt 😌", "Yes, definitely 👍", "You may rely on it 🤔",
+                    "As I see it, yes 🤔", "Most likely 🙂‍↕️", "Outlook is good", "Yes ✅", "Signs point to yes ✅", "Reply hazy, try again",
+                    "Ask again later 🕝", "Better not tell you now 😉", "I can't say for now", "Concentrate and ask again",
+                    "Don't count on it 🙂‍↔️", "My reply is no 😑", "My sources say no", "Outlook is not so good", "Very doubtful 😒", "That's a no ❌",
+                    "No ❌", "Maybe ❓", "Ask me again", "I don't feel like telling you"]
 
-    choice = random.choice(responses)
-
-    await interaction.response.send_message(f"Your question: {question}\nMy verdict: {choice}")
+        await interaction.response.send_message(f"You asked: {question}\n And my answer is: {random.choice(responses)}")
 
 # ==== EVENTS =====
 @client.event
