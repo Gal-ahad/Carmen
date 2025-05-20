@@ -36,6 +36,7 @@ async def sync(interaction: discord.Interaction):
     await client.tree.sync()
     await interaction.response.send_message("✅ Slash commands synced!", ephemeral=True)
 
+# Magic 8 Ball
 @client.tree.command(name="magic_8_ball", description= "Get predictions about the future.")
 @app_commands.describe(question="Enter your question.")
 async def magic_8_ball(interaction: discord.Interaction, question: str):
