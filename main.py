@@ -5,7 +5,11 @@ from discord.ext import commands
 from dotenv import load_dotenv
 
 load_dotenv()
-DEV_ID = int(os.getenv("dev"))
+
+try:
+    DEV_ID = os.getenv("dev")
+except Exception as e:
+    DEV_ID = int(0)
 
 # ==== INTENTS =====
 intents = discord.Intents.default()
