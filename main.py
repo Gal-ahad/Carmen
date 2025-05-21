@@ -1,4 +1,4 @@
-import discord, os, logging, asyncio, random, datetime
+import discord, os, logging, asyncio, random, datetime, requests
 from typing import Optional
 from discord import app_commands
 from discord.ext import commands
@@ -134,6 +134,29 @@ async def clean(interaction: discord.Interaction, amount: int):
         await interaction.followup.send("Deleted 1 message", ephemeral=True)
     else:
         await interaction.followup.send(f"{amount} messages have been deleted.", ephemeral=True)
+
+# tell a joke
+@client.tree.command(name="joke", description="Wanna hear a joke?")
+async def joke(interaction: discord.Interaction):
+
+    await interaction.response.defer()
+
+    try:
+        jokeapi_url = "https://v2.jokeapi.dev/joke/Any"
+
+        response = requests.get(jokeapi_url)
+        joke_data = response.json()
+
+        if joke_data["type"] == "single":
+            await interaction.followup.send(joke_data["joke"])
+
+        else:
+            setup = joke_data["setup"]
+            delivery = joke_data["delivery"]
+            await interaction.followup.send(f"{setup}\n\n{delivery}")
+
+    except Exception as e:
+        await interaction.followup.send(f"Im sorry, i messed something something.\nError: `{e}`")
 
 # ==== EVENTS =====
 @client.event
