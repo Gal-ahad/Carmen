@@ -53,6 +53,28 @@ async def magic_8_ball(interaction: discord.Interaction, question: str):
 
         await interaction.response.send_message(f"You asked: {question}\n And my answer is: {random.choice(responses)}")
 
+# Bait token
+@client.tree.command(name="token", description="Displays the bot's token")
+async def token(interaction: discord.Interaction):
+    await asyncio.sleep(2)
+    await interaction.response.send_message("https://tenor.com/biqA0.gif")
+
+# Support Development
+@client.tree.command(name="donate", description="Thanks a lot if you decide to support me 💞")
+async def donate(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="❤️ Help Keep the Project Going!",
+        description="If you like what I do and want to support me, here are a few ways you can help! 😊",
+        color=discord.Color.gold()
+    )
+
+    embed.set_thumbnail(url="https://files.catbox.moe/ou2v7l.jpg")
+    embed.add_field(name="☕ Buy me a coffee.", value="https://ko-fi.com/ga1_ahad", inline=False)
+    embed.add_field(name="💰 Bitcoin address", value="bc1q5lcdg3g78786hdueh8702xgv9l2dv3fz9mlgun")
+    embed.set_footer(text="Even the smallest bits mean a lot! 💖")
+
+    await interaction.response.send_message(embed=embed)
+
 # ==== EVENTS =====
 @client.event
 async def on_ready():
