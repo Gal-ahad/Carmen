@@ -1,4 +1,4 @@
-import discord, os, logging, asyncio, random
+import discord, os, logging, asyncio, random, datetime
 from typing import Optional
 from discord import app_commands
 from discord.ext import commands
@@ -74,6 +74,45 @@ async def donate(interaction: discord.Interaction):
     embed.set_footer(text="Even the smallest bits mean a lot! 💖")
 
     await interaction.response.send_message(embed=embed)
+
+# owner
+@client.tree.command(name="owner", description="Get in contact with the dev")
+async def owner(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="Credits",
+        description="Some places where you can contact me.",
+        color=discord.Color.blurple(),
+        timestamp=datetime.datetime.now()
+    )
+
+    embed.set_thumbnail(url="https://avatars.githubusercontent.com/u/172686127?v=4")
+
+    fields = [
+        # 🧭 Socials
+        {"name": "🧭 Social Profiles", "value": " ", "inline": False},
+        {"name": "🎮 Discord", "value": "Ga1_ahad", "inline": False},
+        {"name": "🪽 Twitter", "value": "[_Gal_ahad](https://x.com/_Gal_ahad)", "inline": False},
+        {"name": "🦋 Bluesky", "value": "[Gal-ahad](https://bsky.app/profile/gal-ahad.bsky.social)", "inline": False},
+        {"name": "🐘 Mastodon", "value": "[Sir_Ga1ahad](https://mastodon.social/@Sir_Ga1ahad)", "inline": False},
+        {"name": "👽 Reddit", "value": "[Storyshifting](https://www.reddit.com/user/Storyshifting/)", "inline": False},
+        {"name": "‎", "value": "\u200b", "inline": False},  # Invisible spacer to break the section
+
+        # 📬 Contact
+        {"name": "📬 Direct Contact", "value": " ", "inline": False},
+        {"name": "📧 Email me", "value": "sebmiller03@proton.me", "inline": False},
+        {"name": "‎", "value": "\u200b", "inline": False},  # Spacer
+
+        # 🛠️ Support
+        {"name": "🛠️ Feedback", "value": " ", "inline": False},
+        {"name": "🪲 Report an Issue", "value": "[Open an Issue on Github](https://github.com/Gal-ahad/Carmen/issues)", "inline": False}
+    ]
+
+    for field in fields:
+        embed.add_field(name=field["name"], value=field["value"], inline=field["inline"])
+
+    await interaction.response.send_message(embed=embed)
+
+
 
 # ==== EVENTS =====
 @client.event
