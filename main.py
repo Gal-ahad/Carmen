@@ -8,10 +8,8 @@ load_dotenv()
 
 try:
     DEV_ID = int(os.getenv("dev"))
-    print("Running the bot in developer mode.")
 except Exception as e:
     DEV_ID = int(0)
-    print("Running the bot in guest mode.")
 
 # ==== INTENTS =====
 intents = discord.Intents.default()
@@ -28,6 +26,8 @@ handler = logging.FileHandler(filename="discord.log", encoding="utf-8", mode="w"
 # Sync
 @client.tree.command(name="sync", description="DEV ONLY: Manually sync slash commands.")
 async def sync(interaction: discord.Interaction):
+
+    await interaction.response.defer(ephemeral=True)
     
     if interaction.user.id != DEV_ID:
         await interaction.response.send_message("This command is available only to approved developers.", ephemeral=True)
@@ -112,7 +112,28 @@ async def owner(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=embed)
 
+# clean the chat
+@client.tree.command(name="clean", description="Bulk delete messages (max:100)")
+async def clean(interaction: discord.Interaction, amount: int):
 
+    max_amount = 100
+    
+    if amount == 0:
+        await interaction.response.send_message("No messages were deleted.", ephemeral=True)
+        return
+    
+    if amount > max_amount:
+        await interaction.response.send_message(f"Sorry, I can only purge up to {max_amount} messages at once.", ephemeral=True)
+        return
+    
+    await interaction.response.defer(ephemeral=True)
+    
+    await interaction.channel.purge(limit=amount)
+
+    if amount == 1:
+        await interaction.followup.send("Deleted 1 message", ephemeral=True)
+    else:
+        await interaction.followup.send(f"{amount} messages have been deleted.", ephemeral=True)
 
 # ==== EVENTS =====
 @client.event
