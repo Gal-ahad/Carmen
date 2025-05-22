@@ -148,19 +148,19 @@ async def help(interaction: discord.Interaction):
 
     fields = [
         {"Name": "😆 Fun", "value": " ", "inline": False},
-        {"Name": "`/joke`", "value": "Retrieves a joke to share in the chat", "inline": False},
-        {"Name": "`/token`", "value": "Prints out the bot's token", "inline": False},
-        {"Name": "`/magic_8_ball`", "value": "Get predictions about the future", "inline": False},
+        {"Name": "`/jokes`", "value": " ", "inline": True},
+        {"Name": "`/token`", "value": " ", "inline": True},
+        {"Name": "`/magic_8_ball`", "value": " ", "inline": True},
 
         {"Name": "⚙️ Functional", "value": " ", "inline": False},
-        {"Name": "`/sync`", "value": "DEV ONLY: Manually syncs slash commands tree", "inline": False},
+        {"Name": "`/sync`", "value": " ", "inline": True},
 
         {"Name": "🚨 Moderation", "value": " ", "inline": False},
-        {"Name": "`/clean`", "value": "Purges no more than 100 messages from the chat", "inline": False},
+        {"Name": "`/clean`", "value": " ", "inline": True},
 
         {"Name": "🎲 Misc", "value": " ", "inline": False},
-        {"Name": "`/owner`", "value": "Get my contact info", "inline": False},
-        {"Name": "`/donate`", "value": "Support the project!", "inline": False}
+        {"Name": "`/owner`", "value": " ", "inline": True},
+        {"Name": "`/donate`", "value": " ", "inline": True}
 
     ]
 
