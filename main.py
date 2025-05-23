@@ -30,7 +30,7 @@ async def sync(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     
     if interaction.user.id != DEV_ID:
-        await interaction.response.send_message("This command is available only to approved developers.", ephemeral=True)
+        await interaction.followup.send("This command is available only to approved developers.", ephemeral=True)
         return
 
     await client.tree.sync()
@@ -153,7 +153,7 @@ async def help(interaction: discord.Interaction):
         {"Name": "`/magic_8_ball`", "value": " ", "inline": True},
 
         {"Name": "⚙️ Functional", "value": " ", "inline": False},
-        {"Name": "`/sync`", "value": " ", "inline": True},
+        {"Name": " ", "value": " ", "inline": True},
 
         {"Name": "🚨 Moderation", "value": " ", "inline": False},
         {"Name": "`/clean`", "value": " ", "inline": True},
@@ -190,27 +190,40 @@ async def joke(interaction: discord.Interaction):
             else:
                 await interaction.followup.send("Got a weird joke format I can't handle 😅. Could you ask me again?")
 
-# ==== EVENTS =====
-@client.event
-async def on_ready():
-    print(f"Logged in as {client.user}")
-    print("Fetching and deleting global commands...")
+@client.tree.command(name="wipe", description="DEV ONLY: Wipes command tree")
+async def wipe(interaction: discord.Interaction):
+
+    await interaction.response.defer(ephemeral=True)
+
+    if interaction.user.id != DEV_ID:
+        await interaction.followup.send("This command is available only to approved developers.", ephemeral=True)
+        return
 
     try:
         app_id = client.user.id
         global_commands = await client.http.get_global_commands(app_id)
 
-        print(f"Found {len(global_commands)} global commands.")
-
         for cmd in global_commands:
             await client.http.delete_global_command(app_id, cmd["id"])
 
-        # Resync the current in-code commands (if any)
-        synced = await client.tree.sync()
-        print(f"Synced {len(synced)} commands after wipe.")
+        await client.tree.sync()
 
     except Exception as e:
         print(f"Failed to wipe global commands: {e}")
+
+    await interaction.followup.send("✅ Command tree has been wiped and resynced")
+
+# ==== EVENTS =====
+@client.event
+async def on_ready():
+    print(f"Logged in as {client.user}")
+
+    try:
+        synced = await client.tree.sync()
+        print(f"Synced {len(synced)} commands")
+
+    except Exception as e:
+        print(e)
 
     print("Bot is now online\n------------------")
 
