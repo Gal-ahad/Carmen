@@ -1,4 +1,4 @@
-import discord, os, logging, asyncio, random, datetime, requests, aiohttp
+import discord, os, logging, asyncio, random, datetime, requests, aiohttp, psutil, time
 from typing import Optional
 from discord import app_commands
 from discord.ext import commands
@@ -151,9 +151,11 @@ async def help(interaction: discord.Interaction):
         {"Name": "`/jokes`", "value": " ", "inline": True},
         {"Name": "`/token`", "value": " ", "inline": True},
         {"Name": "`/magic_8_ball`", "value": " ", "inline": True},
+        {"Name": "`/coinflip`", "value": " ", "inline": True},
 
         {"Name": "⚙️ Functional", "value": " ", "inline": False},
-        {"Name": " ", "value": " ", "inline": True},
+        {"Name": "`/exchange`", "value": " ", "inline": True},
+        {"Name": "`/ping`", "value": " ", "inline": True},
 
         {"Name": "🚨 Moderation", "value": " ", "inline": False},
         {"Name": "`/clean`", "value": " ", "inline": True},
@@ -276,6 +278,7 @@ def get_flag_url(currency_code: str) -> Optional[str]:
 
     return f"https://flagcdn.com/w80/{country_code.lower()}.png"
 
+# exchange command
 @client.tree.command(name="exchange", description="Convert EUR into other currencies")
 async def exchange(interaction: discord.Interaction,amount: float,target_currency: str):
     await interaction.response.defer()
@@ -315,6 +318,54 @@ async def exchange(interaction: discord.Interaction,amount: float,target_currenc
 
     else:
         await interaction.followup.send(f"Failed to get exchange rate for {target}. Please check the currency code and try again.")
+
+# ping and ram
+def set_client(client):
+
+    global _client
+    _client = client
+
+@client.tree.command(name="ping", description="Check RAM usage and ping latency")
+async def stats(interaction: discord.Interaction):
+
+    client = interaction.client
+
+    start_time = time.time()
+    await interaction.response.defer(ephemeral=False)
+    end_time = time.time()
+    api_latency = round((end_time - start_time) * 1000)
+
+    try:
+        if client.latency and not (client.latency != client.latency):
+            websocket_latency = f"{round(client.latency * 1000)} ms"
+        else:
+            websocket_latency = "Calculating..."
+    except (TypeError, AttributeError) as error:
+        websocket_latency = f"Unavailable: {error}"
+
+    process = psutil.Process(os.getpid())
+    memory_usage = process.memory_info().rss / 1024 / 1024
+
+    embed = discord.Embed(
+        title="Bot Stats",
+        description="Current performance statistics",
+        color=discord.Color.light_grey()
+    )
+
+    fields = [
+        {"name": "API Latency", "value": f"{api_latency} ms", "inline": False},
+        {"name": "WebSocket Latency", "value": websocket_latency, "inline": False},
+        {"name": "Memory Usage", "value": f"{memory_usage:.2f} MB", "inline": False}
+    ]
+
+    for field in fields:
+        embed.add_field(name=field["name"], value=field["value"], inline=field["inline"])
+
+    embed.set_footer(text=f"Requested by {interaction.user.name}")
+    embed.set_thumbnail(url="https://i.postimg.cc/R0JPmnpn/fast-internet-speed-icon-1.png")
+    embed.timestamp = discord.utils.utcnow()
+
+    await interaction.followup.send(embed=embed)
 
 # ==== EVENTS =====
 @client.event
