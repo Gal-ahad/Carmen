@@ -190,6 +190,7 @@ async def joke(interaction: discord.Interaction):
             else:
                 await interaction.followup.send("Got a weird joke format I can't handle 😅. Could you ask me again?")
 
+# wipe the command tre
 @client.tree.command(name="wipe", description="DEV ONLY: Wipes command tree")
 async def wipe(interaction: discord.Interaction):
 
@@ -211,7 +212,22 @@ async def wipe(interaction: discord.Interaction):
     except Exception as e:
         print(f"Failed to wipe global commands: {e}")
 
-    await interaction.followup.send("✅ Command tree has been wiped and resynced")
+    await interaction.followup.send("✅ Command tree has been wiped and resynced!\n Don't forget to restart Discord to apply your changes.")
+
+# flip a coin
+@client.tree.command(name="coinflip", description="Flip a coin")
+async def coinflip(interaction: discord.Interaction):
+
+    outcomes = ["head", "tail"]
+
+    await interaction.response.defer()
+
+    flip = random.choice(outcomes)
+
+    if flip == "head":
+        await interaction.followup.send("I got head!")
+    else:
+        await interaction.followup.send("I got tails!")
 
 # ==== EVENTS =====
 @client.event
