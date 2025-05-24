@@ -229,6 +229,93 @@ async def coinflip(interaction: discord.Interaction):
     else:
         await interaction.followup.send("I got tails!")
 
+# exchange EUR
+async def exchange_function(target_currency: str) -> Optional[float]:
+
+    api_key = os.getenv("fixer_api")
+    if not api_key:
+        return None
+
+    base_url = "http://data.fixer.io/api/latest"
+    params = {
+        "access_key": api_key,
+        "symbols": target_currency
+    }
+
+    try:
+        response = requests.get(base_url, params=params)
+        data = response.json()
+
+        if not data.get("success", False):
+            return None
+
+
+        rates = data.get("rates", {})
+        target_rate = rates.get(target_currency)
+
+        if target_rate is None:
+            return None
+
+        # Since Fixer always returns EUR as base, EUR ➔ target rate is direct
+        return target_rate
+
+    except Exception as e:
+        print(f"Error fetching exchange rate: {e}")
+        return None
+def get_flag_url(currency_code: str) -> Optional[str]:
+
+    CURRENCY_TO_COUNTRY = {
+        "USD": "US","GBP": "GB","JPY": "JP","CHF": "CH",
+        "AUD": "AU","CAD": "CA","CNY": "CN","INR": "IN","BRL": "BR",
+        "MXN": "MX",}
+
+    country_code = CURRENCY_TO_COUNTRY.get(currency_code.upper())
+
+    if not country_code:
+        return None
+
+    return f"https://flagcdn.com/w80/{country_code.lower()}.png"
+
+@client.tree.command(name="exchange", description="Convert EUR into other currencies")
+async def exchange(interaction: discord.Interaction,amount: float,target_currency: str):
+    await interaction.response.defer()
+
+    target = target_currency.upper()
+    source = "EUR"
+
+    # Get the rate from EUR to target
+    rate = await exchange_function(target)
+
+    if rate is not None:
+        converted_amount = amount * rate
+
+        embed = discord.Embed(
+            title="Currency Conversion",
+            description=f"Conversion from {source} to {target}",
+            color=discord.Color.yellow(),
+            timestamp=discord.utils.utcnow()
+        )
+
+        fields = [
+            {"name": "Amount", "value": f"{amount:,.2f} {source}", "inline": True},
+            {"name": "Exchange Rate", "value": f"1 {source} = {rate:,.4f} {target}", "inline": True},
+            {"name": "Converted Amount", "value": f"{converted_amount:,.2f} {target}", "inline": True}
+        ]
+
+        for field in fields:
+            embed.add_field(name=field["name"], value=field["value"], inline=field["inline"])
+
+        flag_url = get_flag_url(target)
+        if flag_url:
+            embed.set_thumbnail(url=flag_url)
+
+        embed.set_footer(text=f"Requested by {interaction.user.name}")
+
+        await interaction.followup.send(embed=embed)
+
+    else:
+        await interaction.followup.send(f"Failed to get exchange rate for {target}. Please check the currency code and try again.")
+
 # ==== EVENTS =====
 @client.event
 async def on_ready():
