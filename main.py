@@ -368,6 +368,81 @@ async def stats(interaction: discord.Interaction):
 
     await interaction.followup.send(embed=embed)
 
+# weather forecast
+@client.tree.command(name="weather", description="Get weather info on a given city")
+@app_commands.describe(city="Which city do you want to check?")
+async def weather(interaction: discord.Interaction, city: str):
+
+    # Defer the response since API calls might take some time
+    await interaction.response.defer()
+
+    if city.isdigit() or city.isalnum():
+        await interaction.followup.send("Numbers are not allowed. Only text")
+        return
+
+    weather_api_key = os.getenv("weather_api")
+    if not weather_api_key:
+        await interaction.followup.send("weather API key not found. Please check your environment variables.")
+        return
+
+    weather_base_url = 'http://api.weatherstack.com/current'
+
+    # Fetch and display the weather for a given location
+    params = {'access_key': weather_api_key, 'query': city.lower()}
+
+    try:
+        # Make a request to the weatherstack API
+        response = requests.get(weather_base_url, params=params)
+        data = response.json()
+
+        # Check for an error from the API
+        if 'error' in data:
+            error_info = data['error']
+            if error_info.get('code') == 104:  # Code 104 = Monthly quota reached
+                weather_info = "I'm sorry, but I'm operating on a free plan and I have reached the limit for this month's requests."
+                await interaction.followup.send(weather_info)
+                return
+            else:
+                weather_info = f"Error fetching weather data: {error_info.get('info', 'Unknown error')}"
+                await interaction.follow.send(weather_info)
+                return
+
+        elif 'current' in data and 'location' in data:
+            current_weather = data['current']
+            location_name = data['location']['name']
+            temperature = current_weather['temperature']
+            weather_descriptions = ', '.join(current_weather.get('weather_descriptions', ['Unknown']))
+            humidity = current_weather.get('humidity', 'Unknown')
+            wind_speed = current_weather.get('wind_speed', 'Unknown')
+
+            # Create a response message
+            weather_embed = discord.Embed(
+                title=f"Results for {location_name}",
+                description="Here's what i could find.",
+                color=discord.Color.blurple(),
+                timestamp=datetime.datetime.now()
+            )
+
+            fields = [
+                {"name": "Temperature", "value": f"{temperature}°C \\ {int(temperature)*9/5+32}°F", "inline": False},
+                {"name": "Sky's Conditions", "value": weather_descriptions, "inline":False},
+                {"name": "Humidity", "value": f"{humidity}%", "inline": False},
+                {"name": "Wind Speed", "value": f"{wind_speed} km/h \\ {wind_speed * 0.621371:.2f} mph", "inline": False}
+            ]
+
+            for field in fields:
+                weather_embed.add_field(name=field["name"], value=field["value"], inline=field["inline"])
+
+            weather_embed.set_thumbnail(url="https://i.postimg.cc/vHKcp1Jn/purepng-com-weather-iconsymbolsiconsapple-iosiosios-8-iconsios-8-721522596142qx4ep.png")
+
+            await interaction.followup.send(embed=weather_embed)
+
+        else:
+            weather_info = "Sorry, I couldn't retrieve the weather information. Please check the location and try again."
+    
+    except Exception as e:
+        weather_info = f"Error processing weather data: {str(e)}"
+
 # ==== EVENTS =====
 @client.event
 async def on_ready():
