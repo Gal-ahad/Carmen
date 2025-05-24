@@ -156,6 +156,7 @@ async def help(interaction: discord.Interaction):
         {"Name": "⚙️ Functional", "value": " ", "inline": False},
         {"Name": "`/exchange`", "value": " ", "inline": True},
         {"Name": "`/ping`", "value": " ", "inline": True},
+        {"Name": "`/weather`", "value": " ", "inline": True},
 
         {"Name": "🚨 Moderation", "value": " ", "inline": False},
         {"Name": "`/clean`", "value": " ", "inline": True},
