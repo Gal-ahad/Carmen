@@ -115,16 +115,16 @@ async def owner(interaction: discord.Interaction):
 async def clean(interaction: discord.Interaction, amount: int):
 
     max_amount = 100
+
+    await interaction.response.defer(ephemeral=True)
     
     if amount == 0:
-        await interaction.response.send_message("No messages were deleted.", ephemeral=True)
+        await interaction.followup.send("No messages were deleted.", ephemeral=True)
         return
     
     if amount > max_amount:
-        await interaction.response.send_message(f"Sorry, I can only purge up to {max_amount} messages at once.", ephemeral=True)
+        await interaction.followup.send(f"Sorry, I can only purge up to {max_amount} messages at once.", ephemeral=True)
         return
-    
-    await interaction.response.defer(ephemeral=True)
     
     await interaction.channel.purge(limit=amount)
 
@@ -327,6 +327,7 @@ def set_client(client):
 
 @client.tree.command(name="ping", description="Check RAM usage and ping latency")
 async def stats(interaction: discord.Interaction):
+
 
     client = interaction.client
 
