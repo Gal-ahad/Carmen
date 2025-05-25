@@ -1,8 +1,9 @@
-import discord, os, logging, asyncio, random, datetime, requests, aiohttp, psutil, time, openai
+import discord, os, logging, asyncio, random, datetime, requests, aiohttp, psutil, time, openai, base64
 from typing import Optional
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
+from types import SimpleNamespace
 
 load_dotenv()
 
@@ -134,44 +135,213 @@ async def clean(interaction: discord.Interaction, amount: int):
         await interaction.followup.send(f"{amount} messages have been deleted.", ephemeral=True)
 
 # help
-@client.tree.command(name="help", description="Prints out a list of available commands")
-async def help(interaction: discord.Interaction):
+class EmbedPaginator:
+    def __init__(self, ctx, embeds, timeout=300):
+        self.ctx = ctx
+        self.embeds = embeds
+        self.current_page = 0
+        self.total_pages = len(embeds)
+        self.timeout = timeout
+        self.controls = {
+            "⬅️": self.previous_page,
+            "➡️": self.next_page,
+            "🔢": self.jump_to_page,
+            "❌": self.stop
+        }
+        self.message = None
 
-    embed = discord.Embed(
-        title="Command List",
-        description="Here's everything i can do!",
-        color=discord.Color.blurple(),
+    async def start(self):
+        if self.total_pages == 1:
+            return await self.ctx.send(embed=self.embeds[0])
+
+        self.message = await self.ctx.send(embed=self.embeds[self.current_page])
+
+        for emoji in self.controls:
+            try:
+                await self.message.add_reaction(emoji)
+            except discord.Forbidden:
+                await self.ctx.send("I don't have permission to add reactions!")
+                return
+
+        def check(reaction, user):
+            return (
+                user == self.ctx.author
+                and reaction.message.id == self.message.id
+                and str(reaction.emoji) in self.controls
+            )
+
+        while True:
+            try:
+                reaction, user = await self.ctx.client.wait_for(
+                    "reaction_add", timeout=self.timeout, check=check
+                )
+                await self.message.remove_reaction(reaction.emoji, user)
+                await self.controls[str(reaction.emoji)]()
+
+            except asyncio.TimeoutError:
+                await interaction.followup.send(
+                    "Looks like you haven't responded in a while, so I'll assume you don't need this anymore. "
+                    "You can rerun the command whenever you're ready to start again!"
+                )
+                await self.end_session()
+                break
+
+
+    async def previous_page(self):
+        if self.current_page > 0:
+            self.current_page -= 1
+            await self.message.edit(embed=self.embeds[self.current_page])
+
+    async def next_page(self):
+        if self.current_page < self.total_pages - 1:
+            self.current_page += 1
+            await self.message.edit(embed=self.embeds[self.current_page])
+
+    async def jump_to_page(self):
+        prompt = await self.ctx.send("Which page would you like to jump to? (1 - {})".format(self.total_pages))
+
+        def msg_check(m):
+            return m.author == self.ctx.author and m.channel == self.ctx.channel
+
+        try:
+            msg = await self.ctx.client.wait_for("message", timeout=30.0, check=msg_check)
+            page = int(msg.content)
+
+            if 1 <= page <= self.total_pages:
+                self.current_page = page - 1
+                await self.message.edit(embed=self.embeds[self.current_page])
+
+            await prompt.delete()
+            await msg.delete()
+
+        except (asyncio.TimeoutError, ValueError):
+            await prompt.delete()
+
+    async def stop(self):
+        await self.end_session()
+
+    async def end_session(self):
+        try:
+            await self.message.clear_reactions()
+        except discord.Forbidden:
+            pass
+
+        # Optional: Update the embed to show it's inactive
+        embed = self.embeds[self.current_page]
+        embed.set_footer(text="Session ended.")
+        await self.message.edit(embed=embed)
+
+def build_help_embeds():
+    embeds = []
+
+    # Page 1: Fun
+    embed1 = discord.Embed(
+        title="Fun",
+        description="**Kill some time with these commands built for entertainment**",
+        color=discord.Color.yellow(),
+        timestamp=discord.utils.utcnow()
+    )
+    fun_fields = [
+        {"name": "`/jokes`", "value": "The bot will tell you a joke", "inline": False},
+        {"name": "`/token`", "value": "Print the bot's token", "inline": False},
+        {"name": "`/magic_8_ball`", "value": "Ask anything to the magic 8 ball", "inline": False},
+        {"name": "`/coinflip`", "value": "Flips a coin. As simple as that", "inline": False}
+    ]
+    for field in fun_fields:
+        embed1.add_field(**field)
+    embed1.set_footer(text="Page 1/4")
+    embed1.set_thumbnail(url="https://images.emojiterra.com/google/android-11/512px/1f389.png")
+    embeds.append(embed1)
+
+    # Page 2: Functional
+    embed2 = discord.Embed(
+        title="**Functional Commands**",
+        description="These commands bring some extra utility to the server",
+        color=discord.Color.lighter_grey(),
         timestamp=datetime.datetime.now()
     )
 
-    embed.set_thumbnail(url="https://cdn-icons-png.flaticon.com/512/6621/6621597.png")
-
-    fields = [
-        {"Name": "😆 Fun", "value": " ", "inline": False},
-        {"Name": "`/jokes`", "value": " ", "inline": True},
-        {"Name": "`/token`", "value": " ", "inline": True},
-        {"Name": "`/magic_8_ball`", "value": " ", "inline": True},
-        {"Name": "`/coinflip`", "value": " ", "inline": True},
-
-        {"Name": "⚙️ Functional", "value": " ", "inline": False},
-        {"Name": "`/exchange`", "value": " ", "inline": True},
-        {"Name": "`/ping`", "value": " ", "inline": True},
-        {"Name": "`/weather`", "value": " ", "inline": True},
-        {"Name": "`/ask`", "value": "", "inline": True},
-
-        {"Name": "🚨 Moderation", "value": " ", "inline": False},
-        {"Name": "`/clean`", "value": " ", "inline": True},
-
-        {"Name": "🎲 Misc", "value": " ", "inline": False},
-        {"Name": "`/owner`", "value": " ", "inline": True},
-        {"Name": "`/donate`", "value": " ", "inline": True}
-
+    func_fields = [
+        {"Name": "`/exchange`", "value": "Convert EUR into other currencies", "inline": False},
+        {"Name": "`/ping`", "value": "Check the bot's ping and RAM usage", "inline": False},
+        {"Name": "`/weather`", "value": "Check the weather in a given city", "inline": False},
+        {"Name": "`/ask`", "value": "Uses AI to answer your questions", "inline": False},
+        {"Name": "`/spotify`", "value": "Search Spotify without leaving Discord", "inline": False}
     ]
 
-    for field in fields:
-        embed.add_field(name=field["Name"], value=field["value"], inline=field["inline"])
+    for field in func_fields:
+        embed2.add_field(name=field["Name"], value=field["value"], inline=field["inline"])
 
-    await interaction.response.send_message(embed=embed)
+    embed2.set_footer(text="You are currently on page 2/4")
+    embed2.set_thumbnail(url="https://files.catbox.moe/rj6dmf.png")
+
+    embeds.append(embed2)
+
+    # Page 3: Moderation
+    embed3 = discord.Embed(
+        title="Moderation",
+        description="**Manage your server with these commands**",
+        color=discord.Color.blue(),
+        timestamp=datetime.datetime.now()
+    )
+
+    mod_fields = [
+        {"Name": "`/clean`", "value": "Mass deletes unwanted messages", "inline": False}
+    ]
+
+    for field in mod_fields:
+        embed3.add_field(name=field["Name"], value=field["value"], inline=field["inline"])
+
+    embed3.set_footer(text="You are currently on page 3/4")
+    embed3.set_thumbnail(url="https://files.catbox.moe/mi68gv.png")
+
+    embeds.append(embed3)
+
+    # Page 4: Miscellaneous
+
+    embed4 = discord.Embed(
+        title="Miscellaneous",
+        description="**Where the odd ones out reside**",
+        color=discord.Color.from_rgb(255,255,255),
+        timestamp=datetime.datetime.now()
+    )
+
+    misc_fields = [
+        {"Name": "`/owner`", "value": "Get in contact with the dev", "inline": False},
+        {"Name": "`/donate`", "value": "Support this project", "inline": False}
+    ]
+
+    for field in misc_fields:
+        embed4.add_field(name=field["Name"], value=field["value"], inline=field["inline"])
+
+    embed4.set_footer(text="You are currently on page 4/4")
+    embed4.set_thumbnail(url="https://files.catbox.moe/o4epmf.png")
+
+    embeds.append(embed4)
+
+    return embeds
+
+@client.tree.command(name="help", description="Prints out a list of available commands")
+async def help(interaction: discord.Interaction):
+    await interaction.response.defer()
+
+    embeds = build_help_embeds()
+    
+    # Single-page fallback
+    if len(embeds) == 1:
+        return await interaction.followup.send(embed=embeds[0])
+
+    await interaction.followup.send("Paginator loading...", ephemeral=True)
+
+    ctx = SimpleNamespace(
+        client=client,
+        author=interaction.user,
+        channel=interaction.channel,
+        send=interaction.channel.send
+    )
+
+    paginator = EmbedPaginator(ctx, embeds)
+    await paginator.start()
 
 # tell a joke
 @client.tree.command(name="jokes", description="Wanna hear a joke?")
@@ -488,7 +658,7 @@ async def ask(interaction: discord.Interaction, prompt: str):
 
         answer = response.choices[0].message["content"]
 
-        await interaction.followup.send(answer)
+        await interaction.followup.send(f"You asked:{prompt}\n Here's my thoughts on it: {answer}")
 
         # now time for a disclaimer
         await asyncio.sleep(2)
@@ -498,6 +668,109 @@ async def ask(interaction: discord.Interaction, prompt: str):
     
     except Exception as e:
         await interaction.followup.send(f"Sorry, i got an error: {str(e)}")
+
+# spotify API
+CLIENT_ID = os.getenv("spotify_client_id")
+CLIENT_SECRET = os.getenv("spotify_client_secret")
+
+def get_access_token():
+
+    url = "https://accounts.spotify.com/api/token"
+    headers = {
+        "Authorization": "Basic " + base64.b64encode(f"{CLIENT_ID}:{CLIENT_SECRET}".encode()).decode()
+    }
+    data = {
+        "grant_type": "client_credentials"
+    }
+
+    response = requests.post(url, headers=headers, data=data)
+
+    if response.status_code == 200:
+        return response.json()["access_token"]
+    else:
+        raise Exception("Could not get access token", response.text)
+
+def search_spotify(track_name, artist_name, token):
+
+    base_url = "https://api.spotify.com/v1/search"
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    def make_request(query):
+        params = {
+            "q": query,
+            "type": "track",
+            "limit": 5
+        }
+
+        response = requests.get(base_url, headers=headers, params=params)
+
+        if response.status_code == 200:
+            return response.json()["tracks"]["items"]
+        return []
+
+    if artist_name:
+        exact_query = f"track:{track_name} artist:{artist_name}"
+        results = make_request(exact_query)
+    else:
+        results = []
+
+    if not results:
+        fallback_query = f"{track_name}"
+
+        if artist_name:
+            fallback_query += f" {artist_name}"
+
+        results = make_request(fallback_query)
+
+    return results
+
+@client.tree.command(name="spotify", description="Searches for songs on Spotify")
+@app_commands.describe(track="The song's title", artist="The artist's name")
+async def spotify_search(interaction: discord.Interaction, track: str, artist: Optional[str] = None):
+
+    await interaction.response.defer()
+
+    try:
+        token = get_access_token()
+        results = search_spotify(track, artist, token)
+
+        if not results:
+            await interaction.followup.send("😢 Couldn't find any matching tracks.")
+            return
+
+        album_images = results[0]["album"]["images"]
+        if album_images:
+            thumbnail_url = album_images[0]["url"]
+        else:
+            thumbnail_url = None
+
+        title_text = f"Results for {track.title()}"
+        if artist:
+            title_text += f" by {artist.title()}"
+
+        embed = discord.Embed(
+            title=title_text,
+            color=discord.Color.green(),
+            timestamp=datetime.datetime.now()
+            )
+
+        for idx, item in enumerate(results, 1):
+            track_name = item['name']
+            artist_names = ", ".join([a['name'] for a in item['artists']])
+            url = item['external_urls']['spotify']
+            embed.add_field(name=f"{idx}. {track_name} by {artist_names}", value=f"[Listen on Spotify]({url})", inline=False)
+
+        if thumbnail_url:
+            embed.set_thumbnail(url=thumbnail_url)
+        else:
+            embed.set_thumbnail(url="https://storage.googleapis.com/pr-newsroom-wp/1/2023/05/Spotify_Primary_Logo_RGB_Green.png")
+
+        await interaction.followup.send(embed=embed)
+
+    except Exception as e:
+        await interaction.followup.send(f"😬 Something went wrong: {e}")
 
 # ==== EVENTS =====
 @client.event
