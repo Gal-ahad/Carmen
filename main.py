@@ -604,6 +604,7 @@ async def spotify_search(interaction: discord.Interaction, track: str, artist: O
     except Exception as e:
         await interaction.followup.send(f"😬 Something went wrong: {e}")
 
+# die roll
 @client.tree.command(name="die_roll", description="Roll a die")
 @app_commands.describe(die_type="How many faces does your die have?")
 async def die_roll(interaction: discord.Interaction, die_type: int):
