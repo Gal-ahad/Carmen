@@ -23,7 +23,7 @@ handler = logging.FileHandler(filename="discord.log", encoding="utf-8", mode="w"
 
 # ==== COMMANDS =====
 
-# Sync
+# sync
 @client.tree.command(name="sync", description="DEV ONLY: Manually sync slash commands.")
 async def sync(interaction: discord.Interaction):
 
@@ -36,7 +36,7 @@ async def sync(interaction: discord.Interaction):
     await client.tree.sync()
     await interaction.followup.send("✅ Slash commands synced!", ephemeral=True)
 
-# Magic 8 Ball
+# magic 8 Ball
 @client.tree.command(name="magic_8_ball", description= "Get predictions about the future.")
 @app_commands.describe(question="Enter your question.")
 async def magic_8_ball(interaction: discord.Interaction, question: str):
@@ -53,13 +53,13 @@ async def magic_8_ball(interaction: discord.Interaction, question: str):
 
         await interaction.response.send_message(f"You asked: {question}\n And my answer is: {random.choice(responses)}")
 
-# Bait token
+# bait token
 @client.tree.command(name="token", description="Displays the bot's token")
 async def token(interaction: discord.Interaction):
     await asyncio.sleep(2)
     await interaction.response.send_message("https://tenor.com/biqA0.gif")
 
-# Support Development
+# support development
 @client.tree.command(name="donate", description="Thanks a lot if you decide to support me 💞")
 async def donate(interaction: discord.Interaction):
     embed = discord.Embed(
@@ -75,7 +75,7 @@ async def donate(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=embed)
 
-# Owner
+# owner
 @client.tree.command(name="owner", description="Get in contact with the dev")
 async def owner(interaction: discord.Interaction):
     embed = discord.Embed(
@@ -110,7 +110,7 @@ async def owner(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=embed)
 
-# Clean the chat
+# clean the chat
 @client.tree.command(name="clean", description="Bulk delete messages (max:100)")
 async def clean(interaction: discord.Interaction, amount: int):
 
@@ -133,7 +133,7 @@ async def clean(interaction: discord.Interaction, amount: int):
     else:
         await interaction.followup.send(f"{amount} messages have been deleted.", ephemeral=True)
 
-# Help
+# help
 @client.tree.command(name="help", description="Prints out a list of available commands")
 async def help(interaction: discord.Interaction):
 
@@ -157,6 +157,7 @@ async def help(interaction: discord.Interaction):
         {"Name": "`/exchange`", "value": " ", "inline": True},
         {"Name": "`/ping`", "value": " ", "inline": True},
         {"Name": "`/weather`", "value": " ", "inline": True},
+        {"Name": "`/ask`", "value": "", "inline": True},
 
         {"Name": "🚨 Moderation", "value": " ", "inline": False},
         {"Name": "`/clean`", "value": " ", "inline": True},
@@ -172,7 +173,7 @@ async def help(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=embed)
 
-# Tell a joke
+# tell a joke
 @client.tree.command(name="jokes", description="Wanna hear a joke?")
 async def joke(interaction: discord.Interaction):
     await interaction.response.defer()  # In case the API takes a moment
@@ -445,6 +446,7 @@ async def weather(interaction: discord.Interaction, city: str):
         weather_info = f"Error processing weather data: {str(e)}"
 
 # AI responses
+
 # fetch the API key from the .env file
 try:
     openai.api_key = os.getenv("openai_key")
@@ -455,6 +457,7 @@ except ImportError as imperr:
     openai_available = False
     print(f"OpenAI package not installed, reason: {imperr} - /ask command will not be available")
 
+# ask command
 @client.tree.command(name="ask", description="Get AI powered responses")
 @app_commands.describe(prompt="The prompt to send")
 async def ask(interaction: discord.Interaction, prompt: str):
