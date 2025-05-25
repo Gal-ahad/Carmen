@@ -1,4 +1,4 @@
-import discord, os, logging, asyncio, random, datetime, requests, aiohttp, psutil, time
+import discord, os, logging, asyncio, random, datetime, requests, aiohttp, psutil, time, openai
 from typing import Optional
 from discord import app_commands
 from discord.ext import commands
@@ -443,6 +443,58 @@ async def weather(interaction: discord.Interaction, city: str):
     
     except Exception as e:
         weather_info = f"Error processing weather data: {str(e)}"
+
+# AI responses
+# fetch the API key from the .env file
+try:
+    openai.api_key = os.getenv("openai_key")
+    openai_key = openai.api_key
+    
+    openai_available = True
+except ImportError as imperr:
+    openai_available = False
+    print(f"OpenAI package not installed, reason: {imperr} - /ask command will not be available")
+
+@client.tree.command(name="ask", description="Get AI powered responses")
+@app_commands.describe(prompt="The prompt to send")
+async def ask(interaction: discord.Interaction, prompt: str):
+
+    # check if ChatGPT is available
+    if not openai_available:
+        await interaction.response.send_message("Im sorry, but the AI integration is currently unavailable. 😔")
+
+    await interaction.response.defer()
+
+    try:
+        
+        if openai_available == False:
+            await interaction.follow.send("API key not found. Please ensure that your .env file has the necessary key, or that it's being imported correctly.")
+            return
+
+        # send the prompt to ChatGPT
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{
+                "role": "system",
+                "content": "You are a helpful assistant, but keep it casual like amongst friends. Do not use more than 2k characters. Instead of writing a list, structure your response in a paragraph like you're personally talking to someone."
+            }, {
+                "role": "user",
+                "content": prompt
+            }],
+            max_tokens=1000)
+
+        answer = response.choices[0].message["content"]
+
+        await interaction.followup.send(answer)
+
+        # now time for a disclaimer
+        await asyncio.sleep(2)
+        await interaction.channel.send("With that said, there is a non-zero possibility my intel is outdated or i got things wrong.So please, fact check whatever i tell you.", 
+        reference=None,allowed_mentions=discord.AllowedMentions.none()
+        )
+    
+    except Exception as e:
+        await interaction.followup.send(f"Sorry, i got an error: {str(e)}")
 
 # ==== EVENTS =====
 @client.event
