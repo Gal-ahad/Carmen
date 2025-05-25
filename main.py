@@ -166,7 +166,7 @@ async def help(interaction: discord.Interaction):
 
         {"Name": "🎲 Misc", "value": " ", "inline": False},
         {"Name": "`/owner` - Get in contact with the developer", "value": " ", "inline": False},
-        {"Name": "`/donate`", "value": "Support the project", "inline": False}
+        {"Name": "`/donate` - Support the project", "value": " ", "inline": False}
 
     ]
 
