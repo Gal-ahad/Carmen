@@ -135,213 +135,45 @@ async def clean(interaction: discord.Interaction, amount: int):
         await interaction.followup.send(f"{amount} messages have been deleted.", ephemeral=True)
 
 # help
-class EmbedPaginator:
-    def __init__(self, ctx, embeds, timeout=300):
-        self.ctx = ctx
-        self.embeds = embeds
-        self.current_page = 0
-        self.total_pages = len(embeds)
-        self.timeout = timeout
-        self.controls = {
-            "⬅️": self.previous_page,
-            "➡️": self.next_page,
-            "🔢": self.jump_to_page,
-            "❌": self.stop
-        }
-        self.message = None
-
-    async def start(self):
-        if self.total_pages == 1:
-            return await self.ctx.send(embed=self.embeds[0])
-
-        self.message = await self.ctx.send(embed=self.embeds[self.current_page])
-
-        for emoji in self.controls:
-            try:
-                await self.message.add_reaction(emoji)
-            except discord.Forbidden:
-                await self.ctx.send("I don't have permission to add reactions!")
-                return
-
-        def check(reaction, user):
-            return (
-                user == self.ctx.author
-                and reaction.message.id == self.message.id
-                and str(reaction.emoji) in self.controls
-            )
-
-        while True:
-            try:
-                reaction, user = await self.ctx.client.wait_for(
-                    "reaction_add", timeout=self.timeout, check=check
-                )
-                await self.message.remove_reaction(reaction.emoji, user)
-                await self.controls[str(reaction.emoji)]()
-
-            except asyncio.TimeoutError:
-                await interaction.followup.send(
-                    "Looks like you haven't responded in a while, so I'll assume you don't need this anymore. "
-                    "You can rerun the command whenever you're ready to start again!"
-                )
-                await self.end_session()
-                break
-
-
-    async def previous_page(self):
-        if self.current_page > 0:
-            self.current_page -= 1
-            await self.message.edit(embed=self.embeds[self.current_page])
-
-    async def next_page(self):
-        if self.current_page < self.total_pages - 1:
-            self.current_page += 1
-            await self.message.edit(embed=self.embeds[self.current_page])
-
-    async def jump_to_page(self):
-        prompt = await self.ctx.send("Which page would you like to jump to? (1 - {})".format(self.total_pages))
-
-        def msg_check(m):
-            return m.author == self.ctx.author and m.channel == self.ctx.channel
-
-        try:
-            msg = await self.ctx.client.wait_for("message", timeout=30.0, check=msg_check)
-            page = int(msg.content)
-
-            if 1 <= page <= self.total_pages:
-                self.current_page = page - 1
-                await self.message.edit(embed=self.embeds[self.current_page])
-
-            await prompt.delete()
-            await msg.delete()
-
-        except (asyncio.TimeoutError, ValueError):
-            await prompt.delete()
-
-    async def stop(self):
-        await self.end_session()
-
-    async def end_session(self):
-        try:
-            await self.message.clear_reactions()
-        except discord.Forbidden:
-            pass
-
-        # Optional: Update the embed to show it's inactive
-        embed = self.embeds[self.current_page]
-        embed.set_footer(text="Session ended.")
-        await self.message.edit(embed=embed)
-
-def build_help_embeds():
-    embeds = []
-
-    # Page 1: Fun
-    embed1 = discord.Embed(
-        title="Fun",
-        description="**Kill some time with these commands built for entertainment**",
-        color=discord.Color.yellow(),
-        timestamp=discord.utils.utcnow()
-    )
-    fun_fields = [
-        {"name": "`/jokes`", "value": "The bot will tell you a joke", "inline": False},
-        {"name": "`/token`", "value": "Print the bot's token", "inline": False},
-        {"name": "`/magic_8_ball`", "value": "Ask anything to the magic 8 ball", "inline": False},
-        {"name": "`/coinflip`", "value": "Flips a coin. As simple as that", "inline": False}
-    ]
-    for field in fun_fields:
-        embed1.add_field(**field)
-    embed1.set_footer(text="Page 1/4")
-    embed1.set_thumbnail(url="https://images.emojiterra.com/google/android-11/512px/1f389.png")
-    embeds.append(embed1)
-
-    # Page 2: Functional
-    embed2 = discord.Embed(
-        title="**Functional Commands**",
-        description="These commands bring some extra utility to the server",
-        color=discord.Color.lighter_grey(),
-        timestamp=datetime.datetime.now()
-    )
-
-    func_fields = [
-        {"Name": "`/exchange`", "value": "Convert EUR into other currencies", "inline": False},
-        {"Name": "`/ping`", "value": "Check the bot's ping and RAM usage", "inline": False},
-        {"Name": "`/weather`", "value": "Check the weather in a given city", "inline": False},
-        {"Name": "`/ask`", "value": "Uses AI to answer your questions", "inline": False},
-        {"Name": "`/spotify`", "value": "Search Spotify without leaving Discord", "inline": False}
-    ]
-
-    for field in func_fields:
-        embed2.add_field(name=field["Name"], value=field["value"], inline=field["inline"])
-
-    embed2.set_footer(text="You are currently on page 2/4")
-    embed2.set_thumbnail(url="https://files.catbox.moe/rj6dmf.png")
-
-    embeds.append(embed2)
-
-    # Page 3: Moderation
-    embed3 = discord.Embed(
-        title="Moderation",
-        description="**Manage your server with these commands**",
-        color=discord.Color.blue(),
-        timestamp=datetime.datetime.now()
-    )
-
-    mod_fields = [
-        {"Name": "`/clean`", "value": "Mass deletes unwanted messages", "inline": False}
-    ]
-
-    for field in mod_fields:
-        embed3.add_field(name=field["Name"], value=field["value"], inline=field["inline"])
-
-    embed3.set_footer(text="You are currently on page 3/4")
-    embed3.set_thumbnail(url="https://files.catbox.moe/mi68gv.png")
-
-    embeds.append(embed3)
-
-    # Page 4: Miscellaneous
-
-    embed4 = discord.Embed(
-        title="Miscellaneous",
-        description="**Where the odd ones out reside**",
-        color=discord.Color.from_rgb(255,255,255),
-        timestamp=datetime.datetime.now()
-    )
-
-    misc_fields = [
-        {"Name": "`/owner`", "value": "Get in contact with the dev", "inline": False},
-        {"Name": "`/donate`", "value": "Support this project", "inline": False}
-    ]
-
-    for field in misc_fields:
-        embed4.add_field(name=field["Name"], value=field["value"], inline=field["inline"])
-
-    embed4.set_footer(text="You are currently on page 4/4")
-    embed4.set_thumbnail(url="https://files.catbox.moe/o4epmf.png")
-
-    embeds.append(embed4)
-
-    return embeds
-
 @client.tree.command(name="help", description="Prints out a list of available commands")
 async def help(interaction: discord.Interaction):
-    await interaction.response.defer()
 
-    embeds = build_help_embeds()
-    
-    # Single-page fallback
-    if len(embeds) == 1:
-        return await interaction.followup.send(embed=embeds[0])
-
-    await interaction.followup.send("Paginator loading...", ephemeral=True)
-
-    ctx = SimpleNamespace(
-        client=client,
-        author=interaction.user,
-        channel=interaction.channel,
-        send=interaction.channel.send
+    embed = discord.Embed(
+        title="Command List",
+        description="Here's everything i can do!",
+        color=discord.Color.blurple(),
+        timestamp=datetime.datetime.now()
     )
 
-    paginator = EmbedPaginator(ctx, embeds)
-    await paginator.start()
+    embed.set_thumbnail(url="https://i.postimg.cc/xCtLsnGf/icon-question-mark-logo-04e6-EA2-600.png")
+
+    fields = [
+        {"Name": "😆 Fun", "value": " ", "inline": False},
+        {"Name": "`/jokes` - Sends a joke in the chat", "value": " ", "inline": False},
+        {"Name": "`/token` - Shows the bot's token", "value": " ", "inline": False},
+        {"Name": "`/magic_8_ball` - Ask anything to the magic 8 ball", "value": " ", "inline": False},
+        {"Name": "`/coinflip` - Flips a coin if you don't have any", "value": " ", "inline": False},
+
+        {"Name": "⚙️ Functional", "value": " ", "inline": False},
+        {"Name": "`/exchange` - Converts EUR into other currencies", "value": " ", "inline": False},
+        {"Name": "`/ping` - Check the ping latency and RAM", "value": " ", "inline": False},
+        {"Name": "`/weather` - Get weather conditions for a given city", "value": " ", "inline": False},
+        {"Name": "`/ask` - Get AI powered responses", "value": " ", "inline": False},
+        {"Name": "`/spotify` - Search Spotify tracks without leaving Discord", "value": " ", "inline": False},
+
+        {"Name": "🚨 Moderation", "value": " ", "inline": False},
+        {"Name": "`/clean` - Bulk delete messages", "value": " ", "inline": False},
+
+        {"Name": "🎲 Misc", "value": " ", "inline": False},
+        {"Name": "`/owner` - Get in contact with the developer", "value": " ", "inline": False},
+        {"Name": "`/donate`", "value": "Support the project", "inline": False}
+
+    ]
+
+    for field in fields:
+        embed.add_field(name=field["Name"], value=field["value"], inline=field["inline"])
+
+    await interaction.response.send_message(embed=embed)
 
 # tell a joke
 @client.tree.command(name="jokes", description="Wanna hear a joke?")
@@ -616,7 +448,6 @@ async def weather(interaction: discord.Interaction, city: str):
         weather_info = f"Error processing weather data: {str(e)}"
 
 # AI responses
-
 # fetch the API key from the .env file
 try:
     openai.api_key = os.getenv("openai_key")
@@ -658,11 +489,11 @@ async def ask(interaction: discord.Interaction, prompt: str):
 
         answer = response.choices[0].message["content"]
 
-        await interaction.followup.send(f"You asked:{prompt}\n Here's my thoughts on it: {answer}")
+        await interaction.followup.send(f"You asked: {prompt}\nHere's my thoughts on it: {answer}")
 
         # now time for a disclaimer
         await asyncio.sleep(2)
-        await interaction.channel.send("With that said, there is a non-zero possibility my intel is outdated or i got things wrong.So please, fact check whatever i tell you.", 
+        await interaction.channel.send("With that said, there is a non-zero possibility my intel is outdated or i got things wrong. So please, fact check whatever i tell you.", 
         reference=None,allowed_mentions=discord.AllowedMentions.none()
         )
     
