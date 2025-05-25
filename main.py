@@ -145,7 +145,7 @@ async def help(interaction: discord.Interaction):
         timestamp=datetime.datetime.now()
     )
 
-    embed.set_thumbnail(url="https://i.postimg.cc/xCtLsnGf/icon-question-mark-logo-04e6-EA2-600.png")
+    embed.set_thumbnail(url="https://files.catbox.moe/4eorkn.png")
 
     fields = [
         {"Name": "😆 Fun", "value": " ", "inline": False},
@@ -160,6 +160,7 @@ async def help(interaction: discord.Interaction):
         {"Name": "`/weather` - Get weather conditions for a given city", "value": " ", "inline": False},
         {"Name": "`/ask` - Get AI powered responses", "value": " ", "inline": False},
         {"Name": "`/spotify` - Search Spotify tracks without leaving Discord", "value": " ", "inline": False},
+        {"Name": "`/die_roll` - Roll a dice", "value": " ", "inline": False},
 
         {"Name": "🚨 Moderation", "value": " ", "inline": False},
         {"Name": "`/clean` - Bulk delete messages", "value": " ", "inline": False},
@@ -602,6 +603,17 @@ async def spotify_search(interaction: discord.Interaction, track: str, artist: O
 
     except Exception as e:
         await interaction.followup.send(f"😬 Something went wrong: {e}")
+
+@client.tree.command(name="die_roll", description="Roll a die")
+@app_commands.describe(die_type="How many faces does your die have?")
+async def die_roll(interaction: discord.Interaction, die_type: int):
+
+    faces = []
+
+    for i in range(die_type):
+        faces.append(i)
+
+    await interaction.response.send_message(f"🎲 The die has chosen: it's a {random.choice(faces)}!")
 
 # ==== EVENTS =====
 @client.event
