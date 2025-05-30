@@ -2,3 +2,6 @@
 /__pycache__
 *.log
 personal notes.md
+/media_filters
+/filter_lists
+/server_settings

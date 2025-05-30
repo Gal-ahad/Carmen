@@ -4,6 +4,7 @@ from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 from types import SimpleNamespace
+import filter_module
 
 load_dotenv()
 
@@ -34,8 +35,14 @@ async def sync(interaction: discord.Interaction):
         await interaction.followup.send("This command is available only to approved developers.", ephemeral=True)
         return
 
+    disclaimer_msg = await interaction.followup.send("This process might take 1 or 2 minute max, i'll message you when im done")
+
+    await asyncio.sleep(10)
+    await disclaimer_msg.delete()
+
     await client.tree.sync()
-    await interaction.followup.send("✅ Slash commands synced!", ephemeral=True)
+
+    await interaction.followup.send("✅ Slash commands have been synced!", ephemeral=True)
 
 # magic 8 Ball
 @client.tree.command(name="magic_8_ball", description= "Get predictions about the future.")
@@ -616,6 +623,54 @@ async def die_roll(interaction: discord.Interaction, die_type: int):
 
     await interaction.response.send_message(f"🎲 The die has chosen: it's a {random.choice(faces)}!")
 
+@client.tree.command(name="filter_init", description="Initialize or check filter settings for this server")
+async def init_filter(interaction: discord.Interaction):
+
+    await interaction.response.defer(ephemeral=True)
+    
+    # Check if user has administrator permissions
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.followup.send("❌ You need administrator permissions to use this command.", ephemeral=True)
+        return
+    
+    guild_id = interaction.guild.id if interaction.guild else None
+    
+    if not guild_id:
+        await interaction.followup.send("❌ This command can only be used in a server.", ephemeral=True)
+        return
+    
+    try:
+        # Call the filter module's initialization function
+        # You'll need to add this function to your filter_module.py
+        result = await filter_module.initialize_server_filter(guild_id, interaction.guild.name)
+        
+        if result["created"]:
+            embed = discord.Embed(
+                title="✅ Filter Initialized",
+                description=f"Created new filter configuration for **{interaction.guild.name}**",
+                color=discord.Color.green(),
+                timestamp=datetime.datetime.now()
+            )
+            embed.add_field(
+                name="Default Settings",
+                value="• All filters are disabled by default\n• Use `/filter_add` to start adding keywords",
+                inline=False
+            )
+        else:
+            embed = discord.Embed(
+                title="ℹ️ Filter Already Exists",
+                description=f"Filter configurations for **{interaction.guild.name}** already exists",
+                color=discord.Color.blue(),
+                timestamp=datetime.datetime.now()
+            )
+        
+        embed.set_footer(text=f"Server ID: {guild_id}")
+        await interaction.followup.send(embed=embed, ephemeral=True)
+        
+    except Exception as e:
+        await interaction.followup.send(f"❌ Error initializing filter: {str(e)}", ephemeral=True)
+        print(f"Error in init_filter command: {e}")
+
 # ==== EVENTS =====
 @client.event
 async def on_ready():
@@ -635,19 +690,29 @@ async def on_message(message):
     if message.author == client.user:
         return # ignore messages from self
 
+    # Process commands
+    await client.process_commands(message)
+    
+    # Use the filter module
+    await filter_module.on_message_filter(message, client)
+
 # ==== MAIN =====
 def main():
-	try:
-		bot_token = os.getenv("bot_token")
-		client.run(bot_token, log_handler=handler, log_level=logging.DEBUG)
-		
-		if not bot_token:
-			print("Error: No Discord token found. Please set the the token environment variable")
-		
-	except Exception as error:
-		print(f"An error occurred: {error}.")
-		
+    try:
+        bot_token = os.getenv("bot_token")
+
+        moderation_group = app_commands.Group(name="moderation", description="Moderation commands")
+        filter_module.setup_moderation_commands(moderation_group, client)
+
+        client.run(bot_token, log_handler=handler, log_level=logging.DEBUG)
+        
+        if not bot_token:
+            print("Error: No Discord token found. Please set the the token environment variable")
+        
+    except Exception as error:
+        print(f"An error occurred: {error}.")
+        
 if __name__ == "__main__":
-	main()
+    main()
 else:
-	print("Please run the bot directly")
+    print("Please run the bot directly")
