@@ -701,9 +701,6 @@ def main():
     try:
         bot_token = os.getenv("bot_token")
 
-        moderation_group = app_commands.Group(name="moderation", description="Moderation commands")
-        filter_module.setup_moderation_commands(moderation_group, client)
-
         client.run(bot_token, log_handler=handler, log_level=logging.DEBUG)
         
         if not bot_token:
