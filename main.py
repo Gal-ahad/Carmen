@@ -75,10 +75,8 @@ async def donate(interaction: discord.Interaction):
         description="If you like what I do and want to support me, here are a few ways you can help! 😊",
         color=discord.Color.gold()
     )
-
-    embed.set_thumbnail(url="https://drive.usercontent.google.com/download?id=1BB3M3a1QnEZ9mtPQ3ZHdeRgMwDEy5kPa")
+	
     embed.add_field(name="☕ Buy me a coffee.", value="https://ko-fi.com/ga1_ahad", inline=False)
-    embed.add_field(name="💰 Bitcoin address", value="bc1q5lcdg3g78786hdueh8702xgv9l2dv3fz9mlgun\nAlternatively you can use the QR code provided")
     embed.set_footer(text="Even the smallest bits mean a lot! 💖")
 
     await interaction.response.send_message(embed=embed)
