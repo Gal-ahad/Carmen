@@ -1,10 +1,11 @@
-import discord, os, logging, asyncio, random, datetime, requests, aiohttp, psutil, time, openai, base64
+import discord, os, logging, asyncio, random, datetime, requests, aiohttp, psutil, time, openai, base64, re
 from typing import Optional
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 from types import SimpleNamespace
 import filter_module
+from urllib.parse import urlparse
 
 load_dotenv()
 
@@ -465,46 +466,127 @@ except ImportError as imperr:
     print(f"OpenAI package not installed, reason: {imperr} - /ask command will not be available")
 
 # ask command
-@client.tree.command(name="ask", description="Get AI powered responses")
-@app_commands.describe(prompt="The prompt to send")
-async def ask(interaction: discord.Interaction, prompt: str):
+def is_direct_image_link(url: str) -> bool:
+    try:
+        parsed = urlparse(url)
+        if not parsed.scheme.startswith("http"):
+            return False
+        return re.search(r"\.(png|jpe?g|webp|gif|bmp)$", parsed.path.lower()) is not None
+    except:
+        return False
 
-    # check if ChatGPT is available
+@client.tree.command(name="ask", description="Get AI powered responses")
+@app_commands.describe(
+    prompt="The prompt to send",
+    image_mode="Enable image input (choose 'on' to activate)"
+)
+@app_commands.choices(image_mode=[
+    app_commands.Choice(name="on", value="on"),
+    app_commands.Choice(name="off", value="off")
+])
+async def ask(
+    interaction: discord.Interaction,
+    prompt: str,
+    image_mode: app_commands.Choice[str] = None
+):
     if not openai_available:
-        await interaction.response.send_message("Im sorry, but the AI integration is currently unavailable. 😔")
+        await interaction.response.send_message("AI integration is currently unavailable. 😔")
+        return
 
     await interaction.response.defer()
 
-    try:
-        
-        if openai_available == False:
-            await interaction.follow.send("API key not found. Please ensure that your .env file has the necessary key, or that it's being imported correctly.")
-            return
+    prompt_msg = None
+    image_url = None
 
-        # send the prompt to ChatGPT
+    try:
+        if image_mode and image_mode.value == "on":
+            prompt_msg = await interaction.followup.send(
+                "Alright, I'm in image mode!\n"
+                "Please either:\n"
+                "- Upload an image **directly here** (preferred)\n"
+                "- Or paste a **direct link** to a supported image (e.g. ends in .jpg, .png — no Twitter/X links please)\n\n"
+                "You have **2 minutes**. Type `abort` to cancel image mode."
+            )
+
+            def check(m: discord.Message):
+                return (
+                    m.author.id == interaction.user.id and
+                    m.channel.id == interaction.channel.id
+                )
+
+            try:
+                msg = await client.wait_for("message", timeout=120.0, check=check)
+
+                if msg.content.strip().lower() == "abort":
+                    await interaction.followup.send("Image mode aborted. No worries!")
+                    if prompt_msg:
+                        try:
+                            await prompt_msg.delete()
+                        except (discord.Forbidden, discord.HTTPException):
+                            pass
+                    return
+
+                if msg.attachments:
+                    for attachment in msg.attachments:
+                        if attachment.content_type and attachment.content_type.startswith("image/"):
+                            image_url = attachment.url
+                            break
+
+                if not image_url:
+                    url_candidate = msg.content.strip()
+                    if is_direct_image_link(url_candidate):
+                        image_url = url_candidate
+
+                if image_url and prompt_msg:
+                    try:
+                        await prompt_msg.delete()
+                    except (discord.Forbidden, discord.HTTPException):
+                        pass
+
+                if not image_url:
+                    await interaction.followup.send("Hmm... that doesn't seem like a usable image. Image mode cancelled.")
+                    return
+
+            except asyncio.TimeoutError:
+                await interaction.followup.send("Timed out waiting for an image. You can try again anytime.")
+                if prompt_msg:
+                    try:
+                        await prompt_msg.delete()
+                    except (discord.Forbidden, discord.HTTPException):
+                        pass
+                return
+
+        # Compose content for OpenAI
+        content_block = [{"type": "text", "text": prompt}]
+        if image_url:
+            content_block.insert(0, {
+                "type": "image_url",
+                "image_url": {"url": image_url}
+            })
+
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{
-                "role": "system",
-                "content": "You are a helpful assistant, but keep it casual like amongst friends. Do not use more than 2k characters. Instead of writing a list, structure your response in a paragraph like you're personally talking to someone."
-            }, {
-                "role": "user",
-                "content": prompt
-            }],
-            max_tokens=1000)
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": (
+                    "You are a helpful assistant, but keep it casual like amongst friends. "
+                    "Do not use more than 2k characters. Avoid lists; respond naturally in a paragraph. You are allowed to sprinkle some emojis to make the conversation friendlier."
+                )},
+                {"role": "user", "content": content_block}
+            ],
+            max_tokens=1000
+        )
 
         answer = response.choices[0].message["content"]
 
-        await interaction.followup.send(f"You asked: {prompt}\nHere's my thoughts on it: {answer}")
-
-        # now time for a disclaimer
+        await interaction.followup.send(answer)
         await asyncio.sleep(2)
-        await interaction.channel.send("With that said, there is a non-zero possibility my intel is outdated or i got things wrong. So please, fact check whatever i tell you.", 
-        reference=None,allowed_mentions=discord.AllowedMentions.none()
+        await interaction.channel.send(
+            "Just a disclaimer: I am not perfect, even a machine like me can get things wrong. Don't forget to fact check this stuff if it's important 🧐",
+            allowed_mentions=discord.AllowedMentions.none()
         )
-    
+
     except Exception as e:
-        await interaction.followup.send(f"Sorry, i got an error: {str(e)}")
+        await interaction.followup.send(f"Sorry, something went wrong: `{str(e)}`")
 
 # spotify API
 CLIENT_ID = os.getenv("spotify_client_id")
