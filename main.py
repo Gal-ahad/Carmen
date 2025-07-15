@@ -146,7 +146,7 @@ async def help(interaction: discord.Interaction):
 
     embed = discord.Embed(
         title="Command List",
-        description="Here's everything i can do!",
+        description="Here's everything you can ask me to do!",
         color=discord.Color.blurple(),
         timestamp=datetime.datetime.now()
     )
@@ -751,6 +751,8 @@ async def init_filter(interaction: discord.Interaction):
         await interaction.followup.send(f"❌ Error initializing filter: {str(e)}", ephemeral=True)
         print(f"Error in init_filter command: {e}")
 
+
+
 # ==== EVENTS =====
 @client.event
 async def on_ready():
@@ -762,6 +764,11 @@ async def on_ready():
 
     except Exception as e:
         print(e)
+
+    # Setup moderation commands
+    moderation_group = discord.app_commands.Group(name="filter", description="Filter-related commands")
+    moderation_group = filter_module.setup_moderation_commands(moderation_group, client)
+    client.tree.add_command(moderation_group)
 
     print("Bot is now online\n------------------")
 
