@@ -4,7 +4,7 @@ from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 from types import SimpleNamespace
-import filter_module
+from filter_module import setup_filter_commands, initialize_server_filter, on_message_filter, handle_word_filtering
 from urllib.parse import urlparse
 
 load_dotenv()
@@ -120,6 +120,15 @@ async def owner(interaction: discord.Interaction):
 # clean the chat
 @client.tree.command(name="clean", description="Bulk delete messages (max:100)")
 async def clean(interaction: discord.Interaction, amount: int):
+    await interaction.response.defer(ephemeral=True)
+
+    if not interaction.user.guild_permissions.administrator or interaction.user.guild.owner:
+        await interaction.followup.send("❌ This command is not available to you", ephemeral=True)
+        return
+
+    if not guild_id:
+        await interaction.followup.send("❌ This command can only be used in a server.", ephemeral=True)
+        return
 
     max_amount = 100
 
@@ -170,6 +179,12 @@ async def help(interaction: discord.Interaction):
 
         {"Name": "🚨 Moderation", "value": " ", "inline": False},
         {"Name": "`/clean` - Bulk delete messages", "value": " ", "inline": False},
+        {"Name": "`media_filter` - Enable media based filtering", "value": " ", "inline": False},
+        {"Name": "`media_filter_status` - View the media settings for the current channel", "value": " ", "inline": False},
+        {"Name": "`filter_add` - Add a word or phrase to the filter", "value": " ", "inline": False},
+        {"Name": "`filter_remove` - Remove a word or phrase from the filter", "value": " ", "inline": False},
+        {"Name": "`filter_list` - View the current list of filtered words or phrases", "value": " ", "inline": False},
+        {"Name": "`filter_init` - Generate filter for the current server", "value": " ", "inline": False},
 
         {"Name": "🎲 Misc", "value": " ", "inline": False},
         {"Name": "`/owner` - Get in contact with the developer", "value": " ", "inline": False},
@@ -705,12 +720,10 @@ async def die_roll(interaction: discord.Interaction, die_type: int):
 
 @client.tree.command(name="filter_init", description="Initialize or check filter settings for this server")
 async def init_filter(interaction: discord.Interaction):
-
     await interaction.response.defer(ephemeral=True)
     
-    # Check if user has administrator permissions
-    if not interaction.user.guild_permissions.administrator:
-        await interaction.followup.send("❌ You need administrator permissions to use this command.", ephemeral=True)
+    if not interaction.user.guild_permissions.administrator or interaction.user.guild.owner:
+        await interaction.followup.send("❌ This command is not available to you", ephemeral=True)
         return
     
     guild_id = interaction.guild.id if interaction.guild else None
@@ -720,9 +733,7 @@ async def init_filter(interaction: discord.Interaction):
         return
     
     try:
-        # Call the filter module's initialization function
-        # You'll need to add this function to your filter_module.py
-        result = await filter_module.initialize_server_filter(guild_id, interaction.guild.name)
+        result = await initialize_server_filter(guild_id, interaction.guild.name)
         
         if result["created"]:
             embed = discord.Embed(
@@ -751,12 +762,13 @@ async def init_filter(interaction: discord.Interaction):
         await interaction.followup.send(f"❌ Error initializing filter: {str(e)}", ephemeral=True)
         print(f"Error in init_filter command: {e}")
 
-
-
 # ==== EVENTS =====
 @client.event
 async def on_ready():
     print(f"Logged in as {client.user}")
+
+    # Add filter commands to the bot
+    setup_filter_commands(client)
 
     try:
         synced = await client.tree.sync()
@@ -764,11 +776,6 @@ async def on_ready():
 
     except Exception as e:
         print(e)
-
-    # Setup moderation commands
-    moderation_group = discord.app_commands.Group(name="filter", description="Filter-related commands")
-    moderation_group = filter_module.setup_moderation_commands(moderation_group, client)
-    client.tree.add_command(moderation_group)
 
     print("Bot is now online\n------------------")
 
@@ -781,7 +788,7 @@ async def on_message(message):
     await client.process_commands(message)
     
     # Use the filter module
-    await filter_module.on_message_filter(message, client)
+    await on_message_filter(message, client)
 
 # ==== MAIN =====
 def main():
