@@ -184,7 +184,7 @@ def setup_filter_commands(bot):
         embed.add_field(name="Settings", value=status_text, inline=False)
         await interaction.response.send_message(embed=embed)
 
-    @bot.tree.command(name="filter_add", description="Add a word to the list of filtered words.")
+    @bot.tree.command(name="filter_add", description="Add a word or phrase to the list of filtered words.")
     @app_commands.describe(word="The word to add to the filter list")
     async def add_to_filter(interaction: discord.Interaction, word: str):
 
@@ -213,7 +213,7 @@ def setup_filter_commands(bot):
         
         await interaction.response.send_message(f"Added '{word}' to the filter list.", ephemeral=True)
 
-    @bot.tree.command(name="filter_remove", description="Remove a word from the list of filtered words.")
+    @bot.tree.command(name="filter_remove", description="Remove a word or phrase from the list of filtered words.")
     @app_commands.describe(word="The word to remove from the filter list")
     async def remove_from_filter(interaction: discord.Interaction, word: str):
 

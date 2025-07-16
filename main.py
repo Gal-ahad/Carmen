@@ -183,8 +183,8 @@ async def help(interaction: discord.Interaction):
         {"Name": "`media_filter_status` - View the media settings for the current channel", "value": " ", "inline": False},
         {"Name": "`filter_add` - Add a word or phrase to the filter", "value": " ", "inline": False},
         {"Name": "`filter_remove` - Remove a word or phrase from the filter", "value": " ", "inline": False},
-        {"Name": "`filter_list` - View the current list of filtered words or phrases", "value": " ", "inline": False},
-        {"Name": "`filter_init` - Generate filter for the current server", "value": " ", "inline": False},
+        {"Name": "`filter_list` - View the current filter list", "value": " ", "inline": False},
+        {"Name": "`filter_init` - Setup filter for the current server", "value": " ", "inline": False},
 
         {"Name": "🎲 Misc", "value": " ", "inline": False},
         {"Name": "`/owner` - Get in contact with the developer", "value": " ", "inline": False},
