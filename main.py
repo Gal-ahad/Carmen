@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from types import SimpleNamespace
 from filter_module import setup_filter_commands, initialize_server_filter, on_message_filter, handle_word_filtering
 from urllib.parse import urlparse
+from datetime import datetime, timezone
 
 load_dotenv()
 
@@ -120,19 +121,18 @@ async def owner(interaction: discord.Interaction):
 # clean the chat
 @client.tree.command(name="clean", description="Bulk delete messages (max:100)")
 async def clean(interaction: discord.Interaction, amount: int):
+    
     await interaction.response.defer(ephemeral=True)
 
     if not interaction.user.guild_permissions.administrator or interaction.user.guild.owner:
         await interaction.followup.send("❌ This command is not available to you", ephemeral=True)
         return
 
-    if not guild_id:
+    if not interaction.guild:
         await interaction.followup.send("❌ This command can only be used in a server.", ephemeral=True)
         return
 
     max_amount = 100
-
-    await interaction.response.defer(ephemeral=True)
     
     if amount == 0:
         await interaction.followup.send("No messages were deleted.", ephemeral=True)
@@ -150,52 +150,132 @@ async def clean(interaction: discord.Interaction, amount: int):
         await interaction.followup.send(f"{amount} messages have been deleted.", ephemeral=True)
 
 # help
-@client.tree.command(name="help", description="Prints out a list of available commands")
+def get_help_pages():
+    
+    page1 = discord.Embed(
+        title="📌 Welcome to the Help Menu",
+        description="This is a list of everything you can ask me to do! Use ◀️ and ▶️ to browse commands, or alternatively you can use the reactions below to skip to a certain page."
+        " Also, you can use the reactions down here to jump to a specific section:\n\n⏮️ jumps to the first page\n🎲 Miscellaneous\n😆 Fun\n⚙️ Functional\n🚨 Moderation",
+    )
+    page1.set_footer(text="You are currently on page 1/5")
+
+    page2 = discord.Embed(
+        title="🎲 Misc",
+        description=(
+            "`/owner` - Get in contact with the developer\n"
+            "`/donate` - Support the project\n"
+        ),
+    )
+    page2.set_footer(text="You are currently on page 2/5")
+
+    page3 = discord.Embed(
+        title="😆 Fun",
+        description=(
+            "`/jokes` - Sends a joke in the chat\n"
+            "`/token` - Shows the bot's token\n"
+            "`/magic_8_ball` - Ask anything to the magic 8 ball\n"
+            "`/coinflip` - Flips a coin if you don't have any\n"
+        ),
+    )
+    page3.set_footer(text="You are currently on page 3/5")
+
+    page4 = discord.Embed(
+        title="⚙️ Functional",
+        description=(
+            "`/exchange` - Converts EUR into other currencies\n"
+            "`/ping` - Check the ping latency and RAM\n"
+            "`/weather` - Get weather conditions for a given city\n"
+            "`/ask` - Get AI powered responses. To add an image to your prompt, simply turn on image mode and send a direct image link\n"
+            "`/spotify` - Search Spotify tracks without leaving Discord\n"
+            "`/die_roll` - Roll a dice\n"
+        ),
+    )
+    page4.set_footer(text="You are currently on page 4/5")
+
+    page5 = discord.Embed(
+        title="🚨 Moderation\nCommands here are available only to moderators and the server owner",
+        description=(
+            "`/clean` - Bulk delete messages\n"
+            "`media_filter` - Toggle media based filtering in the current channel\n"
+            "`media_filter_status` - View the media settings for the current channel\n"
+            "`filter_add` - Add a word or phrase to the filter\n"
+            "`filter_remove` - Remove a word or phrase from the filter\n"
+            "`filter_list` - View the current list of filtered words or phrases\n"
+            "`filter_init` - Generate filter for the current server\n"
+        ),
+    )
+    page5.set_footer(text="You are currently on page 5/5")
+
+    return [page1, page2, page3, page4, page5]
+
+@client.tree.command(name="help", description="Show the help menu")
 async def help(interaction: discord.Interaction):
 
-    embed = discord.Embed(
-        title="Command List",
-        description="Here's everything you can ask me to do!",
-        color=discord.Color.blurple(),
-        timestamp=datetime.datetime.now()
-    )
+    pages = get_help_pages()
+    current_page = 0
 
-    embed.set_thumbnail(url="https://files.catbox.moe/4eorkn.png")
+    await interaction.response.send_message(embed=pages[current_page])
+    message = await interaction.original_response()
 
-    fields = [
-        {"Name": "😆 Fun", "value": " ", "inline": False},
-        {"Name": "`/jokes` - Sends a joke in the chat", "value": " ", "inline": False},
-        {"Name": "`/token` - Shows the bot's token", "value": " ", "inline": False},
-        {"Name": "`/magic_8_ball` - Ask anything to the magic 8 ball", "value": " ", "inline": False},
-        {"Name": "`/coinflip` - Flips a coin if you don't have any", "value": " ", "inline": False},
+    for emoji in ["⏮️","◀️", "▶️", "🎲", "😆", "⚙️", "🚨"]:
+        await message.add_reaction(emoji)
 
-        {"Name": "⚙️ Functional", "value": " ", "inline": False},
-        {"Name": "`/exchange` - Converts EUR into other currencies", "value": " ", "inline": False},
-        {"Name": "`/ping` - Check the ping latency and RAM", "value": " ", "inline": False},
-        {"Name": "`/weather` - Get weather conditions for a given city", "value": " ", "inline": False},
-        {"Name": "`/ask` - Get AI powered responses", "value": " ", "inline": False},
-        {"Name": "`/spotify` - Search Spotify tracks without leaving Discord", "value": " ", "inline": False},
-        {"Name": "`/die_roll` - Roll a dice", "value": " ", "inline": False},
+    def check(reaction, user):
+        return (
+            user == interaction.user and
+            reaction.message.id == message.id and
+            str(reaction.emoji) in ["⏮️","◀️", "▶️", "🎲", "😆", "⚙️", "🚨"]
+        )
 
-        {"Name": "🚨 Moderation", "value": " ", "inline": False},
-        {"Name": "`/clean` - Bulk delete messages", "value": " ", "inline": False},
-        {"Name": "`media_filter` - Enable media based filtering", "value": " ", "inline": False},
-        {"Name": "`media_filter_status` - View the media settings for the current channel", "value": " ", "inline": False},
-        {"Name": "`filter_add` - Add a word or phrase to the filter", "value": " ", "inline": False},
-        {"Name": "`filter_remove` - Remove a word or phrase from the filter", "value": " ", "inline": False},
-        {"Name": "`filter_list` - View the current filter list", "value": " ", "inline": False},
-        {"Name": "`filter_init` - Setup filter for the current server", "value": " ", "inline": False},
+    while True:
+        try:
+            reaction, user = await client.wait_for("reaction_add", timeout=60.0, check=check)
 
-        {"Name": "🎲 Misc", "value": " ", "inline": False},
-        {"Name": "`/owner` - Get in contact with the developer", "value": " ", "inline": False},
-        {"Name": "`/donate` - Support the project", "value": " ", "inline": False}
+            if str(reaction.emoji) == "⏮️":
+                if current_page != 0:
+                    current_page = 0
+                await message.edit(embed=pages[current_page])
 
-    ]
+            if str(reaction.emoji) == "▶️":
+                if current_page < len(pages) - 1:
+                    current_page += 1
+                    await message.edit(embed=pages[current_page])
+                
+            elif str(reaction.emoji) == "◀️":
+                if current_page > 0:
+                    current_page -= 1
+                    await message.edit(embed=pages[current_page])
 
-    for field in fields:
-        embed.add_field(name=field["Name"], value=field["value"], inline=field["inline"])
+            elif str(reaction.emoji) == "🎲":
+                if current_page != 1:
+                    current_page = 1
+                await message.edit(embed=pages[current_page])
 
-    await interaction.response.send_message(embed=embed)
+            elif str(reaction.emoji) == "😆":
+                if current_page != 2:
+                    current_page = 2
+                await message.edit(embed=pages[current_page])
+
+            elif str(reaction.emoji) == "⚙️":
+                if current_page != 3:
+                    current_page = 3
+                await message.edit(embed=pages[current_page])
+
+            elif str(reaction.emoji) == "🚨":
+                if current_page != 4:
+                    current_page = 4
+                await message.edit(embed=pages[current_page])
+
+            await message.remove_reaction(reaction.emoji, user)
+
+        except asyncio.TimeoutError:
+
+            try:
+                await message.clear_reactions()
+            except discord.Forbidden:
+                pass
+
+            break
 
 # tell a joke
 @client.tree.command(name="jokes", description="Wanna hear a joke?")
@@ -711,10 +791,7 @@ async def spotify_search(interaction: discord.Interaction, track: str, artist: O
 @app_commands.describe(die_type="How many faces does your die have?")
 async def die_roll(interaction: discord.Interaction, die_type: int):
 
-    faces = []
-
-    for i in range(die_type):
-        faces.append(i)
+    faces = list(range(1, die_type + 1))
 
     await interaction.response.send_message(f"🎲 The die has chosen: it's a {random.choice(faces)}!")
 
