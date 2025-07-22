@@ -90,7 +90,7 @@ async def owner(interaction: discord.Interaction):
         title="Credits",
         description="Some places where you can contact me.",
         color=discord.Color.blurple(),
-        timestamp=datetime.datetime.now()
+        timestamp=datetime.now()
     )
 
     embed.set_thumbnail(url="https://avatars.githubusercontent.com/u/172686127?v=4")
@@ -482,7 +482,7 @@ async def weather(interaction: discord.Interaction, city: str):
     # Defer the response since API calls might take some time
     await interaction.response.defer()
 
-    if city.isdigit() or city.isalnum():
+    if not city.isalpha():
         await interaction.followup.send("Numbers are not allowed. Only text")
         return
 
@@ -526,7 +526,7 @@ async def weather(interaction: discord.Interaction, city: str):
                 title=f"Results for {location_name}",
                 description="Here's what i could find.",
                 color=discord.Color.blurple(),
-                timestamp=datetime.datetime.now()
+                timestamp=datetime.now()
             )
 
             fields = [
@@ -767,7 +767,7 @@ async def spotify_search(interaction: discord.Interaction, track: str, artist: O
         embed = discord.Embed(
             title=title_text,
             color=discord.Color.green(),
-            timestamp=datetime.datetime.now()
+            timestamp=datetime.now()
             )
 
         for idx, item in enumerate(results, 1):
@@ -817,7 +817,7 @@ async def init_filter(interaction: discord.Interaction):
                 title="✅ Filter Initialized",
                 description=f"Created new filter configuration for **{interaction.guild.name}**",
                 color=discord.Color.green(),
-                timestamp=datetime.datetime.now()
+                timestamp=datetime.now()
             )
             embed.add_field(
                 name="Default Settings",
@@ -827,9 +827,9 @@ async def init_filter(interaction: discord.Interaction):
         else:
             embed = discord.Embed(
                 title="ℹ️ Filter Already Exists",
-                description=f"Filter configurations for **{interaction.guild.name}** already exists",
+                description=f"Filter configurations for **{interaction.guild.name}** already exist",
                 color=discord.Color.blue(),
-                timestamp=datetime.datetime.now()
+                timestamp=datetime.now()
             )
         
         embed.set_footer(text=f"Server ID: {guild_id}")

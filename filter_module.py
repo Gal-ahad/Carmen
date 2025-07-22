@@ -146,8 +146,6 @@ def setup_filter_commands(bot):
     @bot.tree.command(name="media_filter_status", description="Show the current media filter settings for this channel.")
     async def filter_media_status(interaction: discord.Interaction):
 
-        await interaction.response.defer(ephemeral=True)
-
         if not interaction.user.guild_permissions.administrator or interaction.user.guild.owner:
             await interaction.followup.send("❌ This command is not available to you", ephemeral=True)
             return
